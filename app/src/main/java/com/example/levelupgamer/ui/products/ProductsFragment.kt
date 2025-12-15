@@ -13,6 +13,8 @@ import com.example.levelupgamer.adapters.ProductAdapter
 import com.example.levelupgamer.api.ProductRepository
 import com.example.levelupgamer.databinding.FragmentProductsBinding
 import com.example.levelupgamer.models.GamingProduct
+import com.example.levelupgamer.models.Validator
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 
 class ProductsFragment : Fragment() {
@@ -69,19 +71,30 @@ class ProductsFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                products.clear()
-                products.addAll(getSampleProducts())
-                productAdapter.notifyDataSetChanged()
+                // 🔥 LLAMADA REAL A LA API
+                val result = repository.getAllProducts()
+
+                result.onSuccess { productList ->
+                    products.clear()
+                    products.addAll(productList)
+                    productAdapter.notifyDataSetChanged()
+
+                    updateEmptyState()
+
+                    Toast.makeText(
+                        requireContext(),
+                        "✓ ${products.size} productos cargados desde API",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(
+                        requireContext(),
+                        "Error API: ${error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
 
                 binding.swipeRefresh.isRefreshing = false
-
-                if (products.isEmpty()) {
-                    binding.tvEmptyState.visibility = View.VISIBLE
-                    binding.recyclerViewProducts.visibility = View.GONE
-                } else {
-                    binding.tvEmptyState.visibility = View.GONE
-                    binding.recyclerViewProducts.visibility = View.VISIBLE
-                }
             } catch (e: Exception) {
                 binding.swipeRefresh.isRefreshing = false
                 Toast.makeText(
@@ -104,7 +117,7 @@ class ProductsFragment : Fragment() {
             .setView(dialogView)
             .setPositiveButton("Guardar") { dialog, _ ->
                 val product = extractProductFromDialog(dialogView)
-                if (validateProduct(product)) {
+                if (product != null && validateProduct(product)) {
                     createProduct(product)
                 }
                 dialog.dismiss()
@@ -122,12 +135,28 @@ class ProductsFragment : Fragment() {
             null
         )
 
+        // 🔥 RELLENAR CAMPOS CON DATOS EXISTENTES
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductName)
+            ?.setText(product.name)
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductCategory)
+            ?.setText(product.category)
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductBrand)
+            ?.setText(product.brand)
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductPrice)
+            ?.setText(product.price.toString())
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductStock)
+            ?.setText(product.stock.toString())
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductDescription)
+            ?.setText(product.description)
+        dialogView.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductSpecs)
+            ?.setText(product.specifications)
+
         val builder = AlertDialog.Builder(requireContext())
             .setTitle("Editar Producto")
             .setView(dialogView)
             .setPositiveButton("Actualizar") { dialog, _ ->
                 val updatedProduct = extractProductFromDialog(dialogView)
-                if (validateProduct(updatedProduct)) {
+                if (updatedProduct != null && validateProduct(updatedProduct)) {
                     updateProduct(product.id, updatedProduct)
                 }
                 dialog.dismiss()
@@ -139,31 +168,65 @@ class ProductsFragment : Fragment() {
         builder.create().show()
     }
 
-    private fun extractProductFromDialog(view: View): GamingProduct {
-        return GamingProduct(
-            name = "Producto Nuevo",
-            category = "Mouse",
-            brand = "Logitech",
-            price = 99990.0,
-            description = "Producto gaming de alta calidad",
-            stock = 10,
-            specifications = "RGB, Alta precisión"
-        )
+    // 🔥 FUNCIÓN CORREGIDA - EXTRAE DATOS REALES DEL DIÁLOGO
+    private fun extractProductFromDialog(view: View): GamingProduct? {
+        try {
+            val name = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductName)
+                ?.text.toString().trim()
+            val category = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductCategory)
+                ?.text.toString().trim()
+            val brand = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductBrand)
+                ?.text.toString().trim()
+            val priceStr = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductPrice)
+                ?.text.toString().trim()
+            val stockStr = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductStock)
+                ?.text.toString().trim()
+            val description = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductDescription)
+                ?.text.toString().trim()
+            val specs = view.findViewById<TextInputEditText>(com.example.levelupgamer.R.id.etProductSpecs)
+                ?.text.toString().trim()
+
+            val price = priceStr.toDoubleOrNull() ?: 0.0
+            val stock = stockStr.toIntOrNull() ?: 0
+
+            return GamingProduct(
+                name = name,
+                category = category,
+                brand = brand,
+                price = price,
+                description = description,
+                stock = stock,
+                specifications = specs
+            )
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error al leer datos: ${e.message}", Toast.LENGTH_SHORT).show()
+            return null
+        }
     }
 
     private fun validateProduct(product: GamingProduct): Boolean {
         if (product.name.isEmpty()) {
-            Toast.makeText(requireContext(), "El nombre es requerido", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "❌ El nombre es requerido", Toast.LENGTH_SHORT).show()
             return false
         }
 
-        if (product.price <= 0) {
-            Toast.makeText(requireContext(), "El precio debe ser mayor a 0", Toast.LENGTH_SHORT).show()
+        if (product.category.isEmpty()) {
+            Toast.makeText(requireContext(), "❌ La categoría es requerida", Toast.LENGTH_SHORT).show()
             return false
         }
 
-        if (product.stock < 0) {
-            Toast.makeText(requireContext(), "El stock no puede ser negativo", Toast.LENGTH_SHORT).show()
+        if (product.brand.isEmpty()) {
+            Toast.makeText(requireContext(), "❌ La marca es requerida", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (!Validator.isValidPrice(product.price)) {
+            Toast.makeText(requireContext(), "❌ El precio debe ser mayor a 0", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (!Validator.isValidStock(product.stock)) {
+            Toast.makeText(requireContext(), "❌ El stock no puede ser negativo", Toast.LENGTH_SHORT).show()
             return false
         }
 
@@ -173,17 +236,27 @@ class ProductsFragment : Fragment() {
     private fun createProduct(product: GamingProduct) {
         lifecycleScope.launch {
             try {
-                products.add(product.copy(id = products.size + 1))
-                productAdapter.notifyItemInserted(products.size - 1)
+                // 🔥 LLAMADA REAL A LA API
+                val result = repository.createProduct(product)
 
-                Toast.makeText(
-                    requireContext(),
-                    "✓ Producto agregado: ${product.name}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                result.onSuccess { createdProduct ->
+                    products.add(createdProduct)
+                    productAdapter.notifyItemInserted(products.size - 1)
 
-                binding.tvEmptyState.visibility = View.GONE
-                binding.recyclerViewProducts.visibility = View.VISIBLE
+                    Toast.makeText(
+                        requireContext(),
+                        "✓ Producto creado en API: ${createdProduct.name}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    updateEmptyState()
+                }.onFailure { error ->
+                    Toast.makeText(
+                        requireContext(),
+                        "Error al crear: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -197,14 +270,25 @@ class ProductsFragment : Fragment() {
     private fun updateProduct(id: Int, product: GamingProduct) {
         lifecycleScope.launch {
             try {
-                val index = products.indexOfFirst { it.id == id }
-                if (index != -1) {
-                    products[index] = product.copy(id = id)
-                    productAdapter.notifyItemChanged(index)
+                // 🔥 LLAMADA REAL A LA API
+                val result = repository.updateProduct(id, product)
 
+                result.onSuccess { updatedProduct ->
+                    val index = products.indexOfFirst { it.id == id }
+                    if (index != -1) {
+                        products[index] = updatedProduct
+                        productAdapter.notifyItemChanged(index)
+
+                        Toast.makeText(
+                            requireContext(),
+                            "✓ Producto actualizado en API",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }.onFailure { error ->
                     Toast.makeText(
                         requireContext(),
-                        "✓ Producto actualizado",
+                        "Error al actualizar: ${error.message}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -232,21 +316,29 @@ class ProductsFragment : Fragment() {
     private fun deleteProduct(product: GamingProduct) {
         lifecycleScope.launch {
             try {
-                val index = products.indexOf(product)
-                if (index != -1) {
-                    products.removeAt(index)
-                    productAdapter.notifyItemRemoved(index)
+                // 🔥 LLAMADA REAL A LA API
+                val result = repository.deleteProduct(product.id)
 
+                result.onSuccess {
+                    val index = products.indexOf(product)
+                    if (index != -1) {
+                        products.removeAt(index)
+                        productAdapter.notifyItemRemoved(index)
+
+                        Toast.makeText(
+                            requireContext(),
+                            "✓ Producto eliminado de API",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        updateEmptyState()
+                    }
+                }.onFailure { error ->
                     Toast.makeText(
                         requireContext(),
-                        "✓ Producto eliminado",
+                        "Error al eliminar: ${error.message}",
                         Toast.LENGTH_SHORT
                     ).show()
-
-                    if (products.isEmpty()) {
-                        binding.tvEmptyState.visibility = View.VISIBLE
-                        binding.recyclerViewProducts.visibility = View.GONE
-                    }
                 }
             } catch (e: Exception) {
                 Toast.makeText(
@@ -258,39 +350,14 @@ class ProductsFragment : Fragment() {
         }
     }
 
-    private fun getSampleProducts(): List<GamingProduct> {
-        return listOf(
-            GamingProduct(
-                id = 1,
-                name = "Logitech G Pro X Superlight",
-                category = "Mouse",
-                brand = "Logitech",
-                price = 149990.0,
-                description = "Mouse gaming inalámbrico ultra ligero",
-                stock = 15,
-                specifications = "25K DPI, RGB, <63g"
-            ),
-            GamingProduct(
-                id = 2,
-                name = "Corsair K70 RGB",
-                category = "Teclado",
-                brand = "Corsair",
-                price = 189990.0,
-                description = "Teclado mecánico RGB",
-                stock = 8,
-                specifications = "Cherry MX Red, RGB, Aluminio"
-            ),
-            GamingProduct(
-                id = 3,
-                name = "HyperX Cloud II",
-                category = "Audífonos",
-                brand = "HyperX",
-                price = 89990.0,
-                description = "Audífonos gaming 7.1",
-                stock = 20,
-                specifications = "7.1 Surround, 53mm drivers"
-            )
-        )
+    private fun updateEmptyState() {
+        if (products.isEmpty()) {
+            binding.tvEmptyState.visibility = View.VISIBLE
+            binding.recyclerViewProducts.visibility = View.GONE
+        } else {
+            binding.tvEmptyState.visibility = View.GONE
+            binding.recyclerViewProducts.visibility = View.VISIBLE
+        }
     }
 
     override fun onDestroyView() {

@@ -35,7 +35,7 @@ interface ApiService {
 }
 
 object RetrofitClient {
-    private const val BASE_URL = "https://jsonplaceholder.typicode.com/"
+    private const val BASE_URL = "https://694051e7993d68afba6bb8c7.mockapi.io/:endpoint"
 
     private val retrofit by lazy {
         Retrofit.Builder()
