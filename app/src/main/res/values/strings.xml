@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">LevelUpGamer</string>
+
+    <!-- Navigation -->
+    <string name="navigation_drawer_open">Abrir menú de navegación</string>
+    <string name="navigation_drawer_close">Cerrar menú de navegación</string>
+    <string name="nav_header_title">LevelUpGamer</string>
+    <string name="nav_header_subtitle">Tu tienda gaming de confianza</string>
+    <string name="nav_header_desc">Header de navegación</string>
+
+    <!-- Menu Items -->
+    <string name="menu_home">Inicio</string>
+    <string name="menu_products">Productos Gaming</string>
+    <string name="menu_profile">Mi Perfil</string>
+    <string name="menu_login">Login / Registro</string>
+
+    <!-- Login -->
+    <string name="hint_email">Correo electrónico</string>
+    <string name="hint_password">Contraseña</string>
+    <string name="hint_full_name">Nombre completo</string>
+    <string name="hint_phone">Teléfono</string>
+    <string name="hint_address">Dirección</string>
+    <string name="hint_city">Ciudad</string>
+    <string name="hint_postal_code">Código postal</string>
+    <string name="hint_country">País</string>
+
+    <!-- Products -->
+    <string name="hint_product_name">Nombre del producto</string>
+    <string name="hint_product_category">Categoría (Mouse, Teclado, etc.)</string>
+    <string name="hint_product_brand">Marca</string>
+    <string name="hint_product_price">Precio</string>
+    <string name="hint_product_stock">Stock disponible</string>
+    <string name="hint_product_description">Descripción</string>
+    <string name="hint_product_specs">Especificaciones (RGB, DPI, etc.)</string>
+
+    <!-- Messages -->
+    <string name="empty_products">No hay productos disponibles.\nToca + para agregar uno.</string>
+    <string name="error_loading">Error al cargar datos</string>
+    <string name="success_saved">Guardado exitosamente</string>
+    <string name="confirm_delete">¿Confirmar eliminación?</string>
+
+    <!-- Action Strings -->
+    <string name="action_settings">Configuración</string>
+</resources>
